@@ -1,0 +1,3 @@
+10.12.13.14		my-local-router
+remote.example.com	my-remote-router
+# 8.8.8.8		backup-later
