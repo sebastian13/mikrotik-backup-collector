@@ -15,6 +15,7 @@ FILENAME=`date +\%Y\%m\%d`
 SSH_PORT="22"
 KNOCK01=""
 KNOCK02=""
+CONNECT_TIMEOUT=5 # Timeout in Seconds while initiating the connection
 
 ## Load your custom Variables, if provided
 [ -r "$WORKDIR/.env" ] && source "$WORKDIR/.env"
@@ -43,11 +44,11 @@ function backup {
 
 	# Export Compact
 	# Use SSH -n and SCP </dev/null to prevent eating up the actionlist
-	ssh -n backup@${ip} -i $PRIVKEY -p ${SSH_PORT} /export compact > $backup_dir/$FILENAME.rsc
+	ssh -n backup@${ip} -o ConnectTimeout=${CONNECT_TIMEOUT} -i $PRIVKEY -p ${SSH_PORT} /export compact > $backup_dir/$FILENAME.rsc
 
 	# Backup Unencrypted
-	ssh -n -i $PRIVKEY backup@${ip} -p ${SSH_PORT} /system backup save dont-encrypt=yes name=last.backup > /dev/null
-	scp -q -i $PRIVKEY -P ${SSH_PORT} backup@${ip}:/last.backup $backup_dir/$FILENAME.backup </dev/null
+	ssh -n -o ConnectTimeout=${CONNECT_TIMEOUT} -i $PRIVKEY backup@${ip} -p ${SSH_PORT} /system backup save dont-encrypt=yes name=last.backup > /dev/null
+	scp -q -o ConnectTimeout=${CONNECT_TIMEOUT} -i $PRIVKEY -P ${SSH_PORT} backup@${ip}:/last.backup $backup_dir/$FILENAME.backup </dev/null
 
 	# Check the files ...
 	#	-s			... exist and are not empty
@@ -71,12 +72,12 @@ do
 	[ -z "$alias" ] && { echo "Missing Alias of ${ip}. Stopping Backup now."; exit 1; }
 	
 	# Knock Knock
-	curl --silent --fail ${ip}:${KNOCK01} ${ip}:${KNOCK02} || : # echo "Knocked on $alias"
+	curl --silent --connect-timeout ${CONNECT_TIMEOUT} --fail ${ip}:${KNOCK01} ${ip}:${KNOCK02} | :
 
 	if [ "$INIT" = true ]
 	then
 		# Add SSH Fingerprint to the list of known hosts
-		ssh backup@${ip} -n -i $PRIVKEY -o StrictHostKeyChecking=no -p ${SSH_PORT} /system resource print
+		ssh backup@${ip} -n -i $PRIVKEY -o StrictHostKeyChecking=no -o ConnectTimeout=${CONNECT_TIMEOUT} -p ${SSH_PORT} /system resource print
 	fi
 
 	if [ "$PARA" = true ]
